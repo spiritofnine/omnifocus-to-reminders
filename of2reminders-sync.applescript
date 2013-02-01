@@ -1,8 +1,9 @@
-----	Created by: Sean Korzdorfer--	Created on: 02/01/13 12:10:59----	Copyright (c) 2013 MyCompanyName--	All Rights Reserved--(*
+(*
 OmniFocus2Reminders - Sync
 Created by: Sean Korzdorfer
 Created on: 10/23/12 08:53:07
 Version: 1.0
+Version: 1.0.1 2013-02-01 - script no longer clobbers notes.
 
 ## Overview
 
@@ -26,7 +27,7 @@ Requirements:
 - In order to send tasks to multiple Reminders lists, the Reminders app list name MUST MATCH the OmniFocus context name.
 - To use OF2Reminders-sync script, the notes added to both the OmniFocus and Reminders tasks MUST exist.
 
-*)(* ################################ Script ################################ *)property contextList : {"costco", "trader joe's", "petsmart", "target", "price chopper", "cvs", "Petco"}property ofNote : ""property remNote : ""tell application "Reminders"		if (count of (reminders whose completed is true and body contains "omnifocus:///")) > 0 then		set completedList to reminders whose completed is true and body contains "omnifocus:///"		repeat with theTask in completedList			set ofID to my getID(body of theTask, "omnifocus://")			if my completeOFTask(ofID, body of theTask) is true then				set body of theTask to my deleteLine(body of theTask, "omnifocus://")			end if		end repeat	end ifend tell(* 
+*)(* ################################ Script ################################ *)property contextList : {"costco", "trader joe's", "petsmart", "target", "price chopper", "cvs", "Petco"}tell application "Reminders"		if (count of (reminders whose completed is true and body contains "omnifocus:///")) > 0 then		set completedList to reminders whose completed is true and body contains "omnifocus:///"		repeat with theTask in completedList			set ofID to my getID(body of theTask, "omnifocus://")			if my completeOFTask(ofID, body of theTask) is true then				set body of theTask to my deleteLine(body of theTask, "omnifocus://")			end if		end repeat	end ifend tell(* 
 ################################ Delete the OmniFocus URI from Reminders Task ################################ 
 
 Input: The note text of the Reminders script
