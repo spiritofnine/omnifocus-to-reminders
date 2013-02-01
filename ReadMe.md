@@ -23,17 +23,17 @@ of2reminders and of2reminders-batch can be configured as such:
 - If you want to complete the OmniFocus task after sending it to Reminders app, set cleanUp to "complete"
 - Default is "link"
 
-### property listMode ###
+### Property listMode ###
 
 - If you want to send the OmniFocus task to one of multiple Reminders lists, set listMode to "multi"
 - If you want to send the OmniFocus task to a single Reminders list, set listMode to "single"
 - Default is "multi"
 
-### property contextList ###
+### Property contextList ###
 
 A list of whichever OmniFocus context names you want to send to Reminders in Batch. NB: The context names must match the names of the Reminders lists. 
 
-### property defaultList ###
+### Property defaultList ###
 
 The name of your default Reminders List
 
