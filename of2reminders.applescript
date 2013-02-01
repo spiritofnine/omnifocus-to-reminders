@@ -54,7 +54,7 @@ property defaultList : "Reminders"
 
 tell application "OmniFocus"
 	activate
-	-- This first bit is from a RobTrew example from a few years back É Lost the source url.
+	-- This first bit is from a RobTrew example from a few years back â€¦ Lost the source url.
 	tell front window of application "OmniFocus"
 		set oTrees to selected trees of content
 		set lngTrees to count of oTrees
@@ -80,21 +80,26 @@ tell application "OmniFocus"
 					display dialog
 					"There was an error getting the context for the task" & name of theSelection
 				end try
+				
+				if note of theSelection is not "" then
+					set theNote to "OF2Reminders: " & (current date) & return & return & "Initial Notes For This Task Before Sync:" & return & return & note of theSelection
+					set note of theSelection to theNote
+				else
+					set theNote to "OF2Reminders: " & (current date) & return
+					set note of theSelection to theNote
+				end if
+				
 				-- First Test: Future Start Date found
 				if start date of theSelection is not missing value and start date of theSelection is greater than (current date) then
-					my createReminder(thelist, name of theSelection, start date of theSelection, "omnifocus:///task/" & id of theSelection as rich text)
+					my createReminder(thelist, name of theSelection, start date of theSelection, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)
 					-- Second Test: No valid start date, but future due date found
 				else if due date of theSelection is not missing value and the due date of theSelection is greater than (current date) then
-					my createReminder(thelist, name of theSelection, due date of theSelection, "omnifocus:///task/" & id of theSelection as rich text)
+					my createReminder(thelist, name of theSelection, due date of theSelection, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)
 					-- No valid start date or due date found. I could test for start date > due date, but that's on the user.
 				else
-					my createReminder(thelist, name of theSelection, missing value, "omnifocus:///task/" & id of theSelection as rich text)
+					my createReminder(thelist, name of theSelection, missing value, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)
 				end if
-				if note of theSelection is not "" then
-					set note of theSelection to "OF2Reminders: " & (current date) & return & note of theSelection
-				else
-					set note of theSelection to "OF2Reminders: " & (current date)
-				end if
+				
 				-- test CleanUp
 				if cleanUp is "complete" then set completed of theSelection to true
 			end repeat
