@@ -1,12 +1,13 @@
 (*
-OmniFocus2Reminders - Batch
+OmniFocus2Reminders - Selection
 Created by: Sean Korzdorfer
 Created on: 10/23/12 08:53:07
 Version: 1.0
+Version: 1.0.1 2013-02-01 Script no longer clobbers notes.
 
 ## Overview
 
-Send all tasks found for the contexts listed in the property contextList to Reminders.app
+Send selected tasks in OmniFocus to Reminders.app
 
 ## Use Case
 
@@ -24,123 +25,18 @@ You can configure the script to:
 NB: The default cleanUp is link. Note you can use this script with OF2Reminders-Sync to complete the tasks in 
  OmniFocus once they have been completed in Reminders. 
  
- You can run the script in the background by either creating a launchd item or by using Keyboard Maestro
+*)(* ################################ CONFIGURATION ################################ *)-- if you want to keep the OmniFocus tasks active, set cleanUp to "link"-- if yoy want to complete the OmniFocus tasks after sending them to Reminders app-- set cleanUp to "complete"property cleanUp : "link"-- If you want to send OmniFocus tasks to multiple Reminders lists, set listMode to "multi"-- If you want to sent OmniFocus tasks to a single lise, set listMode to "single"property listMode : "multi"-- If you have, say multiple shared shopping lists in the Reminders App whose -- name match an OmniFocus context name, add them the the contextList property:property contextList : {"costco", "trader joe's", "petsmart", "target", "price chopper", "cvs", "amazon"}-- defaultList is the name of the Reminders list you want any task without a context to go.property defaultList : "Reminders"(* ################################ Script ################################ *)tell application "OmniFocus"	activate	-- This first bit is from a RobTrew example from a few years back … Lost the source url.	tell front window of application "OmniFocus"		set oTrees to selected trees of content		set lngTrees to count of oTrees		if lngTrees < 1 then			set oTrees to selected trees of sidebar		end if				if lngTrees < 1 then			return		end if		if (lngTrees > 0) then			repeat with iTree from 1 to lngTrees				set SelectedItemInMainView to selected trees of content				set theSelection to value of (item iTree of oTrees)				try					-- get a list of tasks who are not missing a context, and whose context name can be found in contextList					if listMode is "multi" and context of theSelection is not missing value and contextList contains the name of the context of theSelection then						set thelist to the name of the context of theSelection					else						set thelist to defaultList					end if				on error					display dialog					"There was an error getting the context for the task" & name of theSelection				end try								if note of theSelection is not "" then					set theNote to "OF2Reminders: " & (current date) & return & return & "Initial Notes For This Task Before Sync:" & return & return & note of theSelection					set note of theSelection to theNote				else					set theNote to "OF2Reminders: " & (current date) & return					set note of theSelection to theNote				end if								-- First Test: Future Start Date found				if start date of theSelection is not missing value and start date of theSelection is greater than (current date) then					my createReminder(thelist, name of theSelection, start date of theSelection, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)					-- Second Test: No valid start date, but future due date found				else if due date of theSelection is not missing value and the due date of theSelection is greater than (current date) then					my createReminder(thelist, name of theSelection, due date of theSelection, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)					-- No valid start date or due date found. I could test for start date > due date, but that's on the user.				else					my createReminder(thelist, name of theSelection, missing value, ("omnifocus:///task/" & id of theSelection as rich text) & return & return & theNote)				end if								-- test CleanUp				if cleanUp is "complete" then set completed of theSelection to true			end repeat		end if	end tellend tell(* 
+################################ Create Reminder Task ################################ 
 
-Requirements:
-
-- In order to send tasks to multiple Reminders lists, the Reminders app list name MUST MATCH the OmniFocus context name.
-- To use OF2Reminders-sync script, the notes added to both the OmniFocus and Reminders tasks MUST exist.
-
-*)
-
-(* ################################ CONFIGURATION ################################ *)
--- Propery cleanup can be link, complete or delete
-
-property cleanUp : "link"
-
--- A Reminders List For Each OmniFocus Context OR all tasks go to a single Reminders list
--- listType can be multi or single
--- IF YOU MAKE listMode SINGLE, ALL TASKS WILL BE SENT TO THE LIST NAME SET BY THE PROPERTY defaultList
-
-property listMode : "multi"
-
--- contextList is a of OmniFocus context names which MUST match a Reminders list name
---		Example: I have a context named CVS. I need to have a Reminders list named CVS
-
-property contextList : {"trader joe's", "CVS", "Price Chopper"}
-
--- defaultList is the name of the Reminders list you want any task without a context to go.
-
-property defaultList : "Reminders"
-
-
-(* ################################ Script ################################ *)
-
-property syncHead : "## Initial Notes For This Task Prior To Sync ##"
-
-
-tell first document of application "OmniFocus"
-	
-	repeat with iContext from 1 to count of contextList
-		-- Catch error here
-		set theContext to item iContext of contextList
-		-- Create a list of tasks which belong to a context in contextList, are active, and do not contain an OF2Reminder note
-		if the (count of the tasks of flattened context theContext) > 0 then set theTasks to (tasks of flattened context theContext whose note does not contain "OF2Reminders" and completed is false)
-		repeat with theTask in theTasks
-			if cleanUp is "link" then
-				set taskProps to {taskList:theContext as string, taskName:the name of theTask, taskStart:start date of theTask, taskDue:the due date of theTask, taskNote:("omnifocus:///task/" & the id of theTask as rich text) & return & return & my noteTask(theTask)}
-			else
-				set taskProps to {taskList:theContext as string, taskName:the name of theTask, taskStart:start date of theTask, taskDue:the due date of theTask, taskNote:"omnifocus:///task/" & the id of theTask as rich text}
-			end if
-			-- if cleanUp is "link" then my noteTask(theTask)
-			my prepTask(taskProps)
-			-- Test cleanUp Property
-			if cleanUp is "complete" then set completed of theTask to true
-		end repeat
-	end repeat
-	
-	
-	
-end tell
-
-(* 
-################################ Note Task ################################ 
-
-Input: OmniFocus Task 
-Output: Nothing
+Input: 
+- The Reminders list to send the task to
+- The name of the OmniFocus task
+- The date object of the OmniFocus task
+- The note of the OmniFocus task
+Output: A Reminders Task
 
 Modifies the OmniFocus Task object's note field to 
 
 	OF2Reminder: <date>
 
-*)
-
-
-on noteTask(theTask)
-	try
-		using terms from application "OmniFocus"
-			if note of theTask is not "" then
-				set tmpNote to "# OF2Reminders: " & (current date) & " #" & return & return & syncHead & return & return & note of theTask
-				set note of theTask to tmpNote
-			else
-				set tmpNote to "OF2Reminders: " & (current date) & return
-				set note of theTask to tmpNote
-			end if
-		end using terms from
-	on error
-		display dialog
-		"There was an error setting the note for task: " & theTask
-	end try
-	return tmpNote
-end noteTask
-
-(* 
-################################ Prepare Task ################################ 
-
-Input: a list of properties regarding an OmniFocus task object
-Output: Creates a Reminder task
-
-*)
-
-on prepTask(theTask)
-	using terms from application "OmniFocus"
-		-- Test listMode property
-		if listMode is "multi" then
-			set thelist to taskList of theTask
-		else if listMode is "single" then
-			set thelist to defaultList
-		end if
-		-- Test if date is missing value
-		if taskStart of theTask is not missing value and taskStart of theTask is greater than (current date) then
-			tell application "Reminders" to tell list thelist of default account to make new reminder with properties {name:taskName of theTask, remind me date:taskStart of theTask, body:taskNote of theTask}
-			-- Second Test: No valid start date, but future due date found
-		else if taskDue of theTask is not missing value and the taskDue of theTask is greater than (current date) then
-			tell application "Reminders" to tell list thelist of default account to make new reminder with properties {name:taskName of theTask, remind me date:taskDue of theTask, body:taskNote of theTask}
-			-- No valid start date or due date found. I could test for start date > due date, but that's on the user.
-		else
-			tell application "Reminders" to tell list thelist of default account to make new reminder with properties {name:taskName of theTask, body:taskNote of theTask}
-		end if
-	end using terms from
-end prepTask
-
-
+*)on createReminder(thelist, theTask, theDate, theNote)	try		-- test cleanUp property		if cleanUp is not "link" then set theNote to ""		if theDate is not missing value then			tell application "Reminders" to tell list thelist of default account to make new reminder with properties {name:theTask, remind me date:theDate, body:theNote}		else			tell application "Reminders" to tell list thelist of default account to make new reminder with properties {name:theTask, body:theNote}		end if	on error		display dialog		"There was an error creating a reminder for the task" & theTask	end tryend createReminder
