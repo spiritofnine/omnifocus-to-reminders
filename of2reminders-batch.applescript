@@ -46,8 +46,8 @@ property listMode : "multi"
 
 -- contextList is a of OmniFocus context names which MUST match a Reminders list name
 --		Example: I have a context named CVS. I need to have a Reminders list named CVS
--- property contextList : {"trader joe's", "CVS", "Price Chopper"}
-property contextList : {"PetSmart", "PetCo"}
+
+property contextList : {"trader joe's", "CVS", "Price Chopper"}
 
 -- defaultList is the name of the Reminders list you want any task without a context to go.
 
